@@ -120,6 +120,37 @@ int count_components(int n, vector< vector<int> /*[from, to]*/ >& edges) { // ti
     return result;
 }
 
+
+/////////////////// DFS on a Matrix //////////////////////////
+// you should notice that the graph can be exist implicitly..
+// one of the examples is the Matrix
+
+/// https://leetcode.com/problems/flood-fill/
+bool is_valid(int r, int c, int n, int m) {
+    return (r >= 0 and r < n) and (c >= 0 and c < m);
+}
+void update_image(vector<vector<int>>& image, int sr, int sc, int oldColor, int newColor, vector< vector<bool> >& visited) {
+    const int n = image.size(), m = image[0].size();
+    if (!is_valid(sr, sc, n, m) or visited[sr][sc] or image[sr][sc] != oldColor)
+        return;
+
+    image[sr][sc] = newColor;
+    visited[sr][sc] = true;
+
+    // flood fill:
+    update_image(image, sr - 1, sc, oldColor, newColor, visited);
+    update_image(image, sr + 1, sc, oldColor, newColor, visited);
+    update_image(image, sr, sc - 1, oldColor, newColor, visited);
+    update_image(image, sr, sc + 1, oldColor, newColor, visited);
+}
+vector<vector<int>> floodFill(vector<vector<int>>& image, int sr, int sc, int color) {
+    const int n = image.size(), m = image[0].size();
+    vector< vector<bool> > visited(n, vector<bool>(m));
+    int oldColor = image[sr][sc];
+    update_image(image, sr, sc, oldColor, color, visited);
+    return image;
+}
+
 ////////////////////////////////////////////////////////////////
 
 void print(vector<int>& vec) {
@@ -162,6 +193,15 @@ void count_component_test() {
 
     cout << count_components(n, edges) << endl;
 }
+void flood_fill_test() {
+    vector< vector<int> > image = {{ 1, 1, 1 },{ 1, 1, 0 },{ 1, 0, 1 }};
+    vector< vector<int> > image1 = {{0, 0, 0},
+                                    {0, 0, 0}};
+
+    image = floodFill(image, 1, 1, 2);
+    for (auto row : image)
+        print(row);
+}
 
 int main()
 {
@@ -169,7 +209,9 @@ int main()
 
     //kill_process_test();
 
-    count_component_test();
+    //count_component_test();
+
+    flood_fill_test();
 
     return 0;
 }
