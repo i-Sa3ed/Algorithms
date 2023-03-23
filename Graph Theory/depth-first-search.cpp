@@ -125,10 +125,15 @@ int count_components(int n, vector< vector<int> /*[from, to]*/ >& edges) { // ti
 // you should notice that the graph can be exist implicitly..
 // one of the examples is the Matrix
 
-/// https://leetcode.com/problems/flood-fill/
+// direction arrays:
+int dr4[4] = {-1, 1, 0, 0}; // delta for: up, down, left, right
+int dc4[4] = {0, 0, -1, 1};
+
 bool is_valid(int r, int c, int n, int m) {
     return (r >= 0 and r < n) and (c >= 0 and c < m);
 }
+
+/// https://leetcode.com/problems/flood-fill/
 void update_image(vector<vector<int>>& image, int sr, int sc, int oldColor, int newColor, vector< vector<bool> >& visited) {
     const int n = image.size(), m = image[0].size();
     if (!is_valid(sr, sc, n, m) or visited[sr][sc] or image[sr][sc] != oldColor)
@@ -137,18 +142,176 @@ void update_image(vector<vector<int>>& image, int sr, int sc, int oldColor, int 
     image[sr][sc] = newColor;
     visited[sr][sc] = true;
 
-    // flood fill:
-    update_image(image, sr - 1, sc, oldColor, newColor, visited);
+    // flood fill: the trivial way:
+    /*update_image(image, sr - 1, sc, oldColor, newColor, visited);
     update_image(image, sr + 1, sc, oldColor, newColor, visited);
     update_image(image, sr, sc - 1, oldColor, newColor, visited);
-    update_image(image, sr, sc + 1, oldColor, newColor, visited);
+    update_image(image, sr, sc + 1, oldColor, newColor, visited);*/
+
+    // we can use direction arrays:
+    for (int d = 0; d < 4; ++d) // iterate over all possible positions
+        update_image(image, sr + dr4[d], sc + dc4[d], oldColor, newColor, visited);
+    /// competitive programming tip: randomizing the direction calls will end up with a faster performance
+
+    // another way (especially for 24 neighbors case) : using 2 for loops (from -2 to 2)
 }
 vector<vector<int>> floodFill(vector<vector<int>>& image, int sr, int sc, int color) {
+    /** time complexity:
+     * let N = R*C
+     * then E = 4N
+     * O(N + E) = O(N)
+     *
+     * memory complexity = O(N)
+     */
+
     const int n = image.size(), m = image[0].size();
     vector< vector<bool> > visited(n, vector<bool>(m));
     int oldColor = image[sr][sc];
     update_image(image, sr, sc, oldColor, color, visited);
     return image;
+}
+
+/// https://leetcode.com/problems/count-sub-islands/
+bool is_sub_island(vector<vector<int>>& grid1, vector<vector<int>>& grid2, int r, int c, const int n, const int m,
+                   vector< vector<bool> >& visited) {
+    // validate:
+    if (!is_valid(r, c, n, m) or visited[r][c] or !grid2[r][c])
+        return true;
+
+    visited[r][c] = true; // we can also use the same grid to mark the visited cells
+    bool isSub = grid1[r][c];
+    for (int i = 0; i < 4; ++i) {
+        isSub &= is_sub_island(grid1, grid2, r + dr4[i], c + dc4[i], n, m, visited);
+    }
+
+    return isSub;
+}
+int countSubIslands(vector<vector<int>>& grid1, vector<vector<int>>& grid2) {
+    const int n = grid1.size(), m = grid1[0].size();
+    vector< vector<bool> > visited(n, vector<bool>(m));
+
+    int result = 0;
+    for (int r = 0; r < n; ++r) {
+        for (int c = 0; c < m; ++c) {
+            if (grid2[r][c] and !visited[r][c])
+                result += is_sub_island(grid1, grid2, r, c, n, m, visited);
+        }
+    }
+
+    // we can alternatively use a bool variable as a class attribute
+    // instead of returning bool from dfs function
+
+    return result;
+}
+
+/// https://leetcode.com/problems/coloring-a-border/
+void dfs(vector<vector<int>>& grid, vector<vector<int>>& newGrid, int r, int c,
+        const int n, const int m, int oldColor, int color, vector< vector<bool> >& visited) {
+
+    if (!is_valid(r, c, n, m) or visited[r][c] or grid[r][c] != oldColor)
+        return;
+
+    visited[r][c] = true;
+    bool isBorder = false;
+    for (int i = 0; i < 4; ++i) {
+        int adjr = r + dr4[i], adjc = c + dc4[i];
+        isBorder |= (!is_valid(adjr, adjc, n, m) or grid[adjr][adjc] != oldColor);
+
+        dfs(grid, newGrid, adjr, adjc, n, m, oldColor, color, visited);
+    }
+
+    if (isBorder)
+        newGrid[r][c] = color;
+}
+vector<vector<int>> colorBorder(vector<vector<int>>& grid, int row, int col, int color) {
+    const int n = grid.size(), m = grid[0].size();
+    int oldColor = grid[row][col];
+    vector< vector<bool> > visited(n, vector<bool>(m));
+
+    auto newGrid = grid;
+    dfs(grid, newGrid, row, col, n, m, oldColor, color, visited);
+    return newGrid;
+}
+
+
+/// https://leetcode.com/problems/number-of-closed-islands/
+bool isClosed;
+void dfs(vector<vector<int>>& grid, int r, int c, const int n, const int m, vector< vector<bool> >& visited) {
+    // validate:
+    if (!is_valid(r, c, n, m) or grid[r][c] != 0 or visited[r][c])
+        return;
+
+    visited[r][c] = true;
+
+    for (int i = 0; i < 4; ++i) {
+        int adjr = r + dr4[i], adjc = c + dc4[i];
+
+        // there are 2 possible surroundings {1, boundary}
+        // so if the second case happen => not closed
+        // otherwise => closed
+        isClosed &= is_valid(adjr, adjc, n, m);
+        dfs(grid, adjr, adjc, n, m, visited);
+    }
+}
+int closedIsland(vector<vector<int>>& grid) {
+    const int n = grid.size(), m = grid[0].size();
+
+    // we also can use CCid matrix to do the same job of "visited" matrix
+    vector< vector<bool> > visited(n, vector<bool>(m));
+
+    int result = 0;
+    for (int r = 0; r < n; ++r) {
+        for (int c = 0; c < m; ++c) {
+            if (grid[r][c] == 0 and !visited[r][c]) { // new CC
+                isClosed = true;
+                dfs(grid, r, c, n, m, visited);
+                result += isClosed;
+            }
+        }
+    }
+
+    return result;
+}
+
+
+/// https://leetcode.com/problems/detect-cycles-in-2d-grid/
+bool isThereCycle = false;
+void dfs(vector<vector<char>>& grid, int r, int c, int n, int m, char val, vector<vector<bool>>& visited, int par_r = -1, int par_c = -1) {
+    // validate:
+    if (!is_valid(r, c, n, m) or grid[r][c] != val or isThereCycle) // invalid, not-CC
+        return;
+
+    if (visited[r][c]) { // a cycle
+        isThereCycle = true;
+        return;
+    }
+
+    visited[r][c] = true;
+
+    for (int i = 0; i < 4; ++i) {
+        int nr = r + dr4[i];
+        int nc = c + dc4[i];
+        if (nr == par_r and nc == par_c) // fake cycle from undirected edge
+            continue;
+
+        dfs(grid, nr, nc, n, m, val, visited, r, c);
+    }
+}
+bool containsCycle(vector<vector<char>>& grid) {
+    const int n = grid.size(), m = grid[0].size();
+    vector<vector<bool>> visited(n, vector<bool>(m));
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (!visited[i][j]) { // new CC
+                char val = grid[i][j];
+                dfs(grid, i, j, n, m, val, visited);
+                if (isThereCycle)
+                    return true;
+            }
+        }
+    }
+    return isThereCycle;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -194,13 +357,22 @@ void count_component_test() {
     cout << count_components(n, edges) << endl;
 }
 void flood_fill_test() {
-    vector< vector<int> > image = {{ 1, 1, 1 },{ 1, 1, 0 },{ 1, 0, 1 }};
+    vector< vector<int> > image = {{ 1, 1, 1 },
+                                   { 1, 1, 0 },
+                                   { 1, 0, 1 }};
+
     vector< vector<int> > image1 = {{0, 0, 0},
                                     {0, 0, 0}};
 
     image = floodFill(image, 1, 1, 2);
     for (auto row : image)
         print(row);
+}
+
+void test() {
+    vector< vector<char> > grid = { {'a', 'a'},
+                                   {'a', 'x'} };
+    cout << containsCycle(grid) << endl;
 }
 
 int main()
@@ -211,7 +383,9 @@ int main()
 
     //count_component_test();
 
-    flood_fill_test();
+    //flood_fill_test();
+
+    test();
 
     return 0;
 }
