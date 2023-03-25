@@ -314,6 +314,41 @@ bool containsCycle(vector<vector<char>>& grid) {
     return isThereCycle;
 }
 
+
+//////////////// Reductions on Graph //////////////////
+/// https://leetcode.com/problems/restore-the-array-from-adjacent-pairs/
+vector<int> ans;
+void dfs(int node, unordered_map<int, vector<int>>& graph, unordered_map<int, bool>& visited) {
+        ans.push_back(node);
+        visited[node] = true;
+        for (int neighbor : graph[node])
+            if (!visited[neighbor])
+                dfs(neighbor, graph, visited);
+}
+vector<int> restoreArray(vector<vector<int>>& adjacentPairs) {
+    unordered_map<int, vector<int>> graph;
+    for (auto pair : adjacentPairs) {
+        // undirected edge:
+        graph[pair[0]].push_back(pair[1]);
+        graph[pair[1]].push_back(pair[0]);
+    }
+
+    // obtain root:
+    int root;
+    for (auto node : graph) {
+        if (node.second.size() == 1) {
+            root = node.first;
+            break;
+        }
+    }
+
+    unordered_map<int, bool> visited;
+    dfs(root, graph, visited);
+
+    return ans;
+}
+
+
 ////////////////////////////////////////////////////////////////
 
 void print(vector<int>& vec) {
