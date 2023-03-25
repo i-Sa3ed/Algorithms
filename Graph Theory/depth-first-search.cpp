@@ -433,6 +433,36 @@ int longestConsecutive(vector<int>& nums) {
 }
 
 
+///////// Detect cycles in directed graph ///////////
+/* here there are 4 cases for edges:
+* tree edge
+* forward edge
+* back edge => Cycle source
+* cross edge
+*/
+
+void edge_classify(int node, GRAPH& graph, vector<int>& started, vector<int>& finished, int& time) {
+    started[node] = time; ++time;
+
+    for (int neighbor : graph[node]) {
+        if (started[neighbor] == -1) {
+            cout << node << " -> " << neighbor << " Tree Edge\n";
+            edge_classify(neighbor, graph, started, finished, time);
+        }
+        else {
+            if (started[node] < started[neighbor])
+                cout << node << " -> " << neighbor << " Forward Edge\n";
+            else if (finished[neighbor] == -1)
+                cout << node << " -> " << neighbor << " Back Edge\n"; // cycle
+            else
+                cout << node << " -> " << neighbor << " Cross Edge\n";
+        }
+    }
+
+    finished[node] = time; ++time;
+}
+
+
 ////////////////////////////////////////////////////////////////
 
 void print(vector<int>& vec) {
