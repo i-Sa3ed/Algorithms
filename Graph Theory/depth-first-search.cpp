@@ -348,6 +348,51 @@ vector<int> restoreArray(vector<vector<int>>& adjacentPairs) {
     return ans;
 }
 
+/// https://leetcode.com/problems/smallest-string-with-swaps
+typedef vector< vector<int> > GRAPH;
+void add_edge(GRAPH& graph, int from, int to) {
+        // undirected
+        graph[from].push_back(to);
+        graph[to].push_back(from);
+}
+void dfs(int node, GRAPH& graph, vector<bool>& visited, string& s, string& ccChars, vector<int>& ccIdx) {
+    ccChars.push_back(s[node]);
+    ccIdx.push_back(node);
+
+    visited[node] = true;
+
+    for(int neighbor : graph[node])
+        if (!visited[neighbor])
+            dfs(neighbor, graph, visited, s, ccChars, ccIdx);
+}
+string smallestStringWithSwaps(string s, vector<vector<int>>& pairs) { // O(n logn)
+    int n = s.size();
+
+    // build graph
+    GRAPH graph(n);
+    for (auto pair : pairs) {
+        add_edge(graph, pair[0], pair[1]);
+    }
+
+    vector<bool> visited(n);
+    for (int node = 0; node < n; ++node) {
+        if (!graph[node].empty() and !visited[node]) { // new CC
+            string ccChars;
+            vector<int> ccIdx;
+            dfs(node, graph, visited, s, ccChars, ccIdx);
+
+            sort(ccChars.begin(), ccChars.end());
+            sort(ccIdx.begin(), ccIdx.end());
+            int ccLen = ccChars.size();
+            for (int i = 0; i < ccLen; ++i) {
+                s[ccIdx[i]] = ccChars[i];
+            }
+        }
+    }
+
+    return s;
+}
+
 
 ////////////////////////////////////////////////////////////////
 
