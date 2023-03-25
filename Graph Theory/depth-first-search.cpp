@@ -394,6 +394,45 @@ string smallestStringWithSwaps(string s, vector<vector<int>>& pairs) { // O(n lo
 }
 
 
+/// https://leetcode.com/problems/longest-consecutive-sequence
+void add_edge(unordered_map<int, vector<int> >& graph, int from, int to) {
+        graph[from].push_back(to);
+        graph[to].push_back(from);
+}
+int dfs(int node, unordered_map<int, vector<int> >& graph, unordered_map<int, bool>& visited) {
+    visited[node] = true;
+
+    int len = 1;
+    for (int neighbor : graph[node])
+        if (!visited[neighbor])
+            len += dfs(neighbor, graph, visited);
+    return len;
+}
+int longestConsecutive(vector<int>& nums) {
+    unordered_map<int, vector<int> > graph;
+    vector<int> dummy;
+    for (int node : nums) {
+        if (graph.count(node))
+            continue;
+
+        graph.insert({node, dummy});
+        if (graph.count(node - 1))
+            add_edge(graph, node, node - 1);
+        if (graph.count(node + 1))
+            add_edge(graph, node, node + 1);
+    }
+
+    int ans = 0;
+    unordered_map<int, bool> visited;
+    for (auto item : graph) {
+        if (!visited[item.first])
+            ans = max(ans, dfs(item.first, graph, visited));
+    }
+
+    return ans;
+}
+
+
 ////////////////////////////////////////////////////////////////
 
 void print(vector<int>& vec) {
