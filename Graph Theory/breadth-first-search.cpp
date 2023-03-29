@@ -3,14 +3,18 @@
 #include <queue>
 using namespace std;
 
-// utility
+typedef vector< vector<int> > GRAPH;
+// Delta for: up, right, down, left
+int dr[4] { -1, 0, 1, 0 };
+int dc[4] { 0, 1, 0, -1 };
+
+/// utilities
 void print(vector<int>& vec) {
     for(int i = vec.size() - 1; i >= 0; --i)
         cout << vec[i] << ' ';
     cout << endl;
 }
 
-typedef vector< vector<int> > GRAPH;
 void add_edge(GRAPH& graph, int from, vector<int>& To, bool isUndir = true) {
     for (int to : To) {
         graph[from].push_back(to);
@@ -22,6 +26,10 @@ void add_edge(GRAPH& graph, int from, int to, bool isUndir = true) {
     graph[from].push_back(to);
     if (isUndir)
         graph[to].push_back(from);
+}
+
+bool is_valid(pair<int, int> loc, int n, int m) {
+    return (loc.first >= 0 and loc.first < n) and (loc.second >= 0 and loc.second < m);
 }
 
 /// Implementation
@@ -77,8 +85,8 @@ vector<int> /*length of each node*/ bfs1(int start, GRAPH& graph) {
 // a smarter implementation
     // now we don't need to keep the level of each node (i.e. don't need a pair)
 vector<int> bfs2(int start, GRAPH& graph) {
+    const int n = graph.size(), m = graph[0].size();
     queue<int> breadth;
-    int n = graph.size();
     vector<int> len(n, OO);
 
     breadth.push(start);
@@ -163,6 +171,9 @@ void print_paths(int start, GRAPH& graph) {
 /// https://leetcode.com/problems/graph-valid-tree/
 /*
  * valid tree can contain multiple CCs
+ * Tree:
+ * 1- edges = nodes - 1
+ * 2- no cycles
  */
 
 bool cc_cycle(int start, GRAPH& graph, vector<bool>& visited, vector<int>& parent) {
@@ -213,6 +224,133 @@ bool valid_tree(int nodes, vector< vector<int> >& edges) {
 
     return !has_cycle(graph);
 }
+
+/// https://leetcode.com/problems/shortest-path-to-get-food/
+pair<int, int> obtain_person_loc(vector< vector<char> >& matrix) {
+    const int n = matrix.size(), m = matrix[0].size();
+
+    for (int r = 0; r < n; ++r) {
+        for (int c = 0; c < m; ++c) {
+            if (matrix[r][c] == '*')
+                return {r, c};
+        }
+    }
+
+    pair<int, int> dummy;
+    return dummy;
+}
+int shortest_path(vector< vector<char> >& matrix, pair<int, int> loc) {
+    const int n = matrix.size(), m = matrix[0].size();
+
+    vector< vector<bool> > added(n, vector<bool>(m));
+    queue<pair<int, int>> breadth;
+    breadth.push(loc);
+    added[loc.first][loc.second] = true;
+
+    for(int level = 0, siz = breadth.size(); !breadth.empty(); ++level, siz = breadth.size()) {
+        while (siz--) {
+            pair<int, int> cur = breadth.front();
+            breadth.pop();
+
+            // add neighbors:
+            for (int d = 0; d < 4; ++d) {
+                pair<int, int> adj = {cur.first + dr[d], cur.second + dc[d]};
+                if (is_valid(adj, n, m) and matrix[adj.first][adj.second] != 'X' and !added[adj.first][adj.second]) {
+                    if (matrix[adj.first][adj.second] == '#')
+                        return level + 1;
+
+                    breadth.push(adj);
+                    added[adj.first][adj.second] = true;
+                }
+            }
+        }
+    }
+
+    return -1; // can't reach any food
+
+    /// Dr. Mostafa tip
+    // Tip: we can use the matrix itself to mark visited by setting matrix[nr][nc] = 'X';
+    // This is good for competitions, but not industry / interviews
+}
+int getFood(vector< vector<char> >& matrix) {
+    const int n = matrix.size(), m = matrix[0].size();
+
+    // obtain the root (person location)
+    pair<int, int> loc = obtain_person_loc(matrix);
+
+    // search for shortest path to the food (#)
+    // bfs function
+
+    return shortest_path(matrix, loc);
+}
+
+/// https://leetcode.com/problems/jump-game-iii/
+bool canReach(vector<int>& arr, int start) {
+    const int n = arr.size();
+    queue<int> breadth;
+    vector<bool> added(n);
+
+    breadth.push(start);
+    added[start] = true;
+
+    for (int level = 0, siz = 1; !breadth.empty(); ++level, siz = breadth.size()) {
+        while (siz--) { // process only the current level
+            int cur = breadth.front();
+            breadth.pop();
+
+            // safer than associating it with neighbors
+            if (arr[cur] == 0)
+                return true;
+
+            int neighbors[] = {cur + arr[cur], cur - arr[cur]};
+
+            for (int neighbor : neighbors) {
+                if ((neighbor >= 0 and neighbor < n) and !added[neighbor]) {
+                    breadth.push(neighbor);
+                    added[neighbor] = true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+/// https://leetcode.com/problems/minimum-operations-to-convert-number/
+int minimumOperations(vector<int>& nums, int start, int goal) {
+    // O(N * M)
+    // M = 1001 (possible states)
+    const int n = nums.size();
+    queue<int> X;
+    vector<bool> added(1005);
+
+    X.push(start);
+    added[start] = true;
+
+    for (int level = 0, siz = 1; !X.empty(); ++level, siz = X.size()) {
+        while (siz--) { // process only the current level
+            int x = X.front();
+            X.pop();
+
+            for (int i = 0; i < n; ++i) {
+                int neighbors[] = {x + nums[i], x - nums[i], x ^ nums[i]};
+                
+                for (int neighbor : neighbors) {
+                    if (neighbor == goal)
+                        return level + 1;
+
+                    if ((neighbor >= 0 and neighbor <= 1000) and !added[neighbor]) {
+                        X.push(neighbor);
+                        added[neighbor] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
 
 /////////////////////////////////////////
 
@@ -274,7 +412,7 @@ int main() {
 
     //print_paths_test();
 
-    valid_tree_test();
+    //valid_tree_test();
 
     return 0;
 }
