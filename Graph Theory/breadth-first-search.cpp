@@ -1,6 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <unordered_map>
+#include <algorithm>
+
 using namespace std;
 
 typedef vector< vector<int> > GRAPH;
@@ -8,9 +11,13 @@ typedef vector< vector<int> > GRAPH;
 int dr[4] { -1, 0, 1, 0 };
 int dc[4] { 0, 1, 0, -1 };
 
+struct cell {
+    int r = 0, c = 0;
+};
+
 /// utilities
 void print(vector<int>& vec) {
-    for(int i = vec.size() - 1; i >= 0; --i)
+    for(int i = 0; i < vec.size(); ++i)
         cout << vec[i] << ' ';
     cout << endl;
 }
@@ -30,6 +37,9 @@ void add_edge(GRAPH& graph, int from, int to, bool isUndir = true) {
 
 bool is_valid(pair<int, int> loc, int n, int m) {
     return (loc.first >= 0 and loc.first < n) and (loc.second >= 0 and loc.second < m);
+}
+bool is_valid(cell loc, int n, int m) {
+    return (loc.r >= 0 and loc.r < n) and (loc.c >= 0 and loc.c < m);
 }
 
 /// Implementation
@@ -334,7 +344,7 @@ int minimumOperations(vector<int>& nums, int start, int goal) {
 
             for (int i = 0; i < n; ++i) {
                 int neighbors[] = {x + nums[i], x - nums[i], x ^ nums[i]};
-                
+
                 for (int neighbor : neighbors) {
                     if (neighbor == goal)
                         return level + 1;
@@ -349,6 +359,243 @@ int minimumOperations(vector<int>& nums, int start, int goal) {
     }
 
     return -1;
+}
+
+/// https://leetcode.com/problems/open-the-lock/
+string move(string lock, int idx, bool isForward = true) {
+    if (isForward) {
+        if (lock[idx] == '9')
+            lock[idx] = '0';
+        else ++lock[idx];
+    }
+    else {
+        if (lock[idx] == '0')
+            lock[idx] = '9';
+        else --lock[idx];
+    }
+
+    /// Dr. Mostafa tip
+    // Tip: In C++, we can change the index value in O(1).
+            // In languages where the string is immutable, we construct the whole string!
+
+    return lock;
+}
+int openLock(vector<string>& deadends, string target) {
+    queue<string> breadth;
+    unordered_map<string, bool> added;
+
+    // add deadends to "added" hashset:
+    for (string& dead : deadends) { // O(deadends.size())
+        added[dead] = true;
+    }
+
+    string init = "0000";
+    if (!added[init]) {
+        breadth.push(init);
+        added[init] = true;
+    }
+
+
+    for (int level = 0, siz = breadth.size(); !breadth.empty(); ++level, siz = breadth.size()) {
+        while (siz--) { // process only the current level
+            string cur = breadth.front();
+            breadth.pop();
+
+            if (cur == target)
+                return level;
+
+            // produce neighbors: by doing 1 move (forward or backward)
+            // to one slot
+            for (int i = 0; i < 4; ++i) {
+                string neighbors[2] = {move(cur, i), move(cur, i, false)};
+                for (string& neighbor : neighbors) {
+                    if (!added[neighbor]) {
+                        breadth.push(neighbor);
+                        added[neighbor] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    return -1; // can't reach to target
+}
+
+/// https://leetcode.com/problems/walls-and-gates/
+/// Dr. Mostafa tip:
+/*
+ This can be named: multi-source BFS
+	In this variant, we have many starting points at the same time (the gates here)
+	We simply add them to the queue and run the normal BFS
+	So instead of a single start, we add all possible starting
+
+	This means in level 1: each gate find the rooms of 1 step distance
+	This means in level 2: each gate find the rooms of 2 steps distance
+	And so on
+	Hence, the first gate reach a room, then this is its shortest distance
+
+Convenience yourself by tracing some examples
+The whole idea, instead of doing one by one, we do them together
+The advantage, each cell is marked as visited once.
+
+Take home lesson: If we have multiple starts, we just add them to the queue
+ */
+void walls_and_gates(vector<vector<int>>& rooms) {
+    const int n = rooms.size(), m = rooms[0].size(),
+            INF = 2147483647;
+    queue<cell> breadth;
+
+    // init breadth with gates:
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            if (rooms[i][j] == 0)
+                breadth.push({i, j});
+
+    for (int level = 0, siz = breadth.size(); !breadth.empty(); ++level, siz = breadth.size()) {
+        while (siz--) { // process only the current level
+            cell cur = breadth.front();
+            breadth.pop();
+
+            // produce neighbors:
+            for (int i = 0; i < 4; ++i) {
+                cell neighbor = cur;
+                neighbor.r += dr[i];
+                neighbor.c += dc[i];
+
+                if (is_valid(neighbor, n, m) and rooms[neighbor.r][neighbor.c] == INF) {
+                    rooms[neighbor.r][neighbor.c] = level + 1; // visited
+                    breadth.push(neighbor);
+                }
+            }
+        }
+    }
+}
+// submitted on
+// https://www.codingninjas.com/codestudio/problems/walls-and-gates_1092887?leftPanelTab=0
+
+/// https://leetcode.com/problems/pacific-atlantic-water-flow/
+struct oceans {
+    bool pacific = false, atlantic = false;
+};
+vector<vector<int>> pacificAtlantic(vector<vector<int>>& heights) {
+    const int n = heights.size(), m = heights[0].size();
+
+    vector< vector<oceans> > isReachable(n, vector<oceans>(m));
+    // init top and left edges:
+    queue<cell> pacificQueue;
+    for (int i = 0, j = 0; i < n or j < m; ++i, ++j) {
+        if (j < m)
+            isReachable[0][j].pacific = true, pacificQueue.push({0, j});
+        if (i < n)
+            isReachable[i][0].pacific = true, pacificQueue.push({i, 0});
+    }
+    // debug(isReachable);
+
+    // flood fill - pacific:
+    while (!pacificQueue.empty()) {
+        cell cur = pacificQueue.front();
+        pacificQueue.pop();
+
+        cell neighbor;
+        for (int d = 0; d < 4; ++d) {
+            neighbor.r = cur.r + dr[d];
+            neighbor.c = cur.c + dc[d];
+
+            if (is_valid(neighbor, n, m) and heights[neighbor.r][neighbor.c] >= heights[cur.r][cur.c] and
+                !isReachable[neighbor.r][neighbor.c].pacific) {
+                isReachable[neighbor.r][neighbor.c].pacific = true;
+                pacificQueue.push(neighbor);
+            }
+        }
+    }
+
+
+    // init bottom and right edges:
+    queue<cell> atlanticQueue;
+    for (int i = 0, j = 0; i < n or j < m; ++i, ++j) {
+        if (j < m)
+            isReachable[n-1][j].atlantic = true, atlanticQueue.push({n-1, j});
+        if (i < n)
+            isReachable[i][m-1].atlantic = true, atlanticQueue.push({i, m - 1});
+    }
+    // debug(isReachable);
+
+    // flood fill - atlantic:
+    while (!atlanticQueue.empty()) {
+        cell cur = atlanticQueue.front();
+        atlanticQueue.pop();
+
+        cell neighbor;
+        for (int d = 0; d < 4; ++d) {
+            neighbor.r = cur.r + dr[d];
+            neighbor.c = cur.c + dc[d];
+
+            if (is_valid(neighbor, n, m) and heights[neighbor.r][neighbor.c] >= heights[cur.r][cur.c] and
+                !isReachable[neighbor.r][neighbor.c].atlantic) {
+                isReachable[neighbor.r][neighbor.c].atlantic = true;
+                atlanticQueue.push(neighbor);
+            }
+        }
+    }
+
+    vector< vector<int> > list;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (isReachable[i][j].pacific and isReachable[i][j].atlantic)
+                list.push_back({i, j});
+        }
+    }
+
+    return list;
+}
+
+/// https://leetcode.com/problems/stepping-numbers/
+vector<long long> get_neighbors(long long cur) {
+    vector<long long> res;
+    long long lastDigit = cur % 10;
+
+    cur *= 10; // increase its exp.
+    if (lastDigit == 0)
+        res.push_back(cur + (lastDigit+1));
+    else if (lastDigit == 9) {
+        res.push_back(cur + (lastDigit-1));
+    }
+    else
+        res = {(cur + (lastDigit+1)), (cur + (lastDigit-1))};
+
+    return res;
+}
+vector<int> count_stepping_numbers(int low, int high) {
+    queue<long long> breadth;
+    vector<int> ans;
+
+    // init with digits (0 .. 9)
+    if (low<= 0 and high >= 0) // special case, we can't generate from 0
+        ans.push_back(0);
+    for (int digit = 1; digit <= 9; ++digit) {
+        breadth.push(digit);
+
+        if (digit >= low and digit <= high)
+            ans.push_back(digit);
+    }
+
+    while (!breadth.empty()) {
+        long long cur = breadth.front();
+        breadth.pop();
+
+        vector<long long> neighbors = get_neighbors(cur);
+        for (long long neighbor : neighbors) {
+            if (neighbor <= high) {
+                breadth.push(neighbor);
+
+                if (neighbor >= low)
+                    ans.push_back(neighbor);
+            }
+        }
+    }
+
+    sort(ans.begin(), ans.end());
+    return ans;
 }
 
 
@@ -406,6 +653,22 @@ void valid_tree_test() {
 
     cout << valid_tree(n, edges) << endl;
 }
+void open_lock_test() {
+    vector<string> deadends = {"0201","0101","0102","1212","2002"};
+    string target = "0202";
+
+    cout << openLock(deadends, target) << endl;
+}
+void walls_and_gates_test() {
+
+}
+void stepping_nums_test() {
+    int low, high;
+    cin >> low >> high;
+
+    vector<int> steppings = count_stepping_numbers(low, high);
+    print(steppings);
+}
 
 int main() {
     //implementation_test();
@@ -413,6 +676,10 @@ int main() {
     //print_paths_test();
 
     //valid_tree_test();
+
+    //open_lock_test();
+
+    stepping_nums_test();
 
     return 0;
 }
