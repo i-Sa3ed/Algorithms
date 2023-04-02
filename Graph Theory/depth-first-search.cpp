@@ -453,7 +453,7 @@ void edge_classify(int node, GRAPH& graph, vector<int>& started, vector<int>& fi
             if (started[node] < started[neighbor])
                 cout << node << " -> " << neighbor << " Forward Edge\n";
             else if (finished[neighbor] == -1)
-                cout << node << " -> " << neighbor << " Back Edge\n"; // cycle
+                cout << node << " -> " << neighbor << " Back Edge\n"; // cycle: started before me, didn't finish yet
             else
                 cout << node << " -> " << neighbor << " Cross Edge\n";
         }
