@@ -4,8 +4,8 @@
 using namespace std;
 
 struct Point {
-    double x, y;
-    Point(double x = 0, double y = 0) : x(x), y(y) {
+    int x, y;
+    Point(int x = 0, int y = 0) : x(x), y(y) {
     }
 
     void read() { cin >> x >> y; }
