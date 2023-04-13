@@ -19,34 +19,37 @@ struct Point {
     }
 };
 
-vector<Point> generate_line(Point start, Point end) {
+vector<Point> generate_line(Point start, Point end, vector<int>& parameters) {
     int deltaX = end.x - start.x,
             deltaY = end.y - start.y;
 
-    vector<Point> line = {start};
+    vector<Point> line;
     int p = 2 * deltaY - deltaX; // Po
 
     int number_of_points = deltaX;
+    Point cur = start;
     while (number_of_points--) {
+        parameters.push_back(p);
         Point next;
         if (p < 0) {
-            next = {line.back().x + 1, line.back().y};
+            next = {cur.x + 1, cur.y};
             p += (2 * deltaY);
         }
         else {
-            next = {line.back().x + 1, line.back().y + 1};
+            next = {cur.x + 1, cur.y + 1};
             p += (2 * deltaY - 2 * deltaX);
         }
         line.push_back(next);
+        cur = next;
     }
 
     return line;
 }
 
-void print(vector<Point>& line) {
-    cout << "\nYour Bresenham's Line:\n";
-    for (Point p : line) {
-        cout << p.x << ' ' << p.y << endl;
+void print(vector<int>& paras, vector<Point>& line) {
+    cout << "P_k\tPoint_k+1\n";
+    for (int i = 0; i < paras.size(); ++i) {
+        cout << paras[i] << '\t' << '(' << line[i].x << ", " << line[i].y << ")\n";
     }
 }
 int main() {
@@ -57,8 +60,9 @@ int main() {
     cout << "Enter the end point:\n";
     end.read();
 
-    vector<Point> line = generate_line(start, end);
-    print(line);
+    vector<int> parameters;
+    vector<Point> line = generate_line(start, end, parameters);
+    print(parameters, line);
 
     return 0;
 }
