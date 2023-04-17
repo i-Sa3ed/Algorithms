@@ -38,6 +38,13 @@ vector< item > items;
 map< pair<int, int>, long long > memory;
 
 long long knapsack(int idx, int limit) {
+    /*
+     * time: O(n * max_weight)
+     * memory: same
+     *      we can improve it to O(w) only, by writing it iteratively.
+     * max recursion depth limit: n
+     */
+    
     // base case
     if (idx >= n)
         return 0;
