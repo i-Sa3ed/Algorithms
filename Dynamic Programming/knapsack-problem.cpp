@@ -44,7 +44,7 @@ long long knapsack(int idx, int limit) {
      *      we can improve it to O(w) only, by writing it iteratively.
      * max recursion depth limit: n
      */
-    
+
     // base case
     if (idx >= n)
         return 0;
