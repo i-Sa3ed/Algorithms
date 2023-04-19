@@ -1,24 +1,18 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
 /// https://leetcode.com/problems/maximum-height-by-stacking-cuboids/
 
+const int MAX = 100 + 1;
+int memory[MAX][MAX];
+
 class Solution {
     int n;
-    vector<int> init = {105, 105, 105};
-    unordered_map<string, int> memory;
 
-    string encode(int idx, vector<int> vec) {
-        string res = to_string(idx);
-        for(int i : vec) {
-            res += '.';
-            res += to_string(i);
-        }
-        return res;
-    }
     bool can_place(vector<int>& bottom, vector<int>& top) {
         for (int i = 0; i < 3; ++i) {
             if (top[i] > bottom[i])
@@ -27,25 +21,24 @@ class Solution {
         return true;
     }
 public:
-    int dp_max_height(vector<vector<int>>& cuboids, int idx, vector<int>& last) {
+    int dp_max_height(vector<vector<int>>& cuboids, int idx, int last) {
         /*
          * time: O(N^2)
-         * memory: same (because we hash every single state)
+         * memory: same
          */
         if (idx == n)
             return 0;
 
         // memoization
-        string state = encode(idx, last); // encode it, to be able to hash it.
-        if (memory.find(state) != memory.end())
-            return memory[state];
-        auto& ret = memory[state];
+        auto& ret = memory[idx][last];
+        if (ret != -1)
+            return ret;
 
         // next choices:
         int pick = 0;
-        if (can_place(last, cuboids[idx]))
+        if (last == n or can_place(cuboids[last], cuboids[idx]))
             pick = cuboids[idx][2] +                // pick the max dimension
-                    dp_max_height(cuboids, idx+1, cuboids[idx]);
+                    dp_max_height(cuboids, idx+1, idx);
         int leave = dp_max_height(cuboids, idx+1, last);
 
         return ret = max(pick, leave);
@@ -62,7 +55,8 @@ public:
         // the solution is the longest decreasing subsequence ^_^
         // remember: LIS problem ;)
 
-        return dp_max_height(cuboids, 0, init);
+        memset(memory, -1, sizeof(memory));
+        return dp_max_height(cuboids, 0, n);
     }
 };
 
