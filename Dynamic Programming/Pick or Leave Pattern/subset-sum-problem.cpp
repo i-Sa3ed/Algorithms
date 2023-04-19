@@ -4,6 +4,8 @@
 
 using namespace std;
 
+/// https://practice.geeksforgeeks.org/problems/subset-sum-problem-1611555638/1
+
 // which to prioritize?
     // fast memset init, or
     // customized vector memory
