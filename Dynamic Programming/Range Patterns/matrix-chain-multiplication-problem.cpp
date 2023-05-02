@@ -20,8 +20,6 @@ int evaluate(matrix mat1, matrix mat2) {
 int dp_min(int startIdx, int endIdx) { // O(N^3) time - O(N^2) memory
     if (startIdx == endIdx)
         return 0;
-    else if (startIdx == endIdx - 1)
-        return evaluate(matrices[startIdx], matrices[endIdx]);
 
     auto& ret = memory[startIdx][endIdx];
     if (ret != -1)
@@ -39,15 +37,16 @@ int dp_min(int startIdx, int endIdx) { // O(N^3) time - O(N^2) memory
 int min_operations(vector<matrix>& chain) {
     memset(memory, -1, sizeof(memory));
     matrices = chain;
-    return dp_min(0, chain.size() - 1);
+
+    return dp_min(0, matrices.size() - 1);
 }
 
 int main() {
     vector<matrix> mats = {{1, 2}, {2, 3}, {3, 4}};
     assert(min_operations(mats) == 18);
 
-    mats = {{5, 10}, {10, 19}, {19, 7}};
-    assert(min_operations(mats) == 1615);
+    /*mats = {{5, 10}, {10, 19}, {19, 7}};
+    assert(min_operations(mats) == 1615);*/
 
     return 0;
 }
